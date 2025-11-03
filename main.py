@@ -91,3 +91,4 @@ while running:
                 start_new_game()
 
 #5555555555555555555555555555555555
+print('Hello Pygame')
