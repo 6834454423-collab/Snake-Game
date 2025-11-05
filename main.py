@@ -90,5 +90,4 @@ while running:
             elif winner and play_again_rect.collidepoint(event.pos):
                 start_new_game()
 
-#5555555555555555555555555555555555
-print('Hello Pygame')
+    
