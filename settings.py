@@ -24,4 +24,4 @@ GREY = (180, 180, 180)
 
 PLAYER_COLORS = [RED, GREEN, BLUE, YELLOW]
 
-#DDD
+#update latest ver.

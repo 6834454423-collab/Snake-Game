@@ -9,22 +9,36 @@ class SnakeLadderGenerator:
     def generate(self):
         snakes = {}
         ladders = {}
-        used = set()
+        used = set([0, 100]) # 🛑 START (0) และ FINISH (100) ห้ามใช้
 
-        for _ in range(self.num_ladders):
+        # 🔹 สร้างบันได
+        count = 0
+        while count < self.num_ladders:
             start = random.randint(2, 80)
             end = start + random.randint(10, 18)
-            if end >= 99 or start in used:
+            
+            # ✅ ตรวจสอบเงื่อนไขการสร้างบันได
+            if end >= 99 or start in used or end in used:
                 continue
+                
             ladders[start] = end
             used.add(start)
+            used.add(end) # ✅ เพิ่มช่องปลายทางของบันไดไม่ให้ทับซ้อนกับช่องอื่น
+            count += 1
 
-        for _ in range(self.num_snakes):
+        # 🔹 สร้างงู
+        count = 0
+        while count < self.num_snakes:
             start = random.randint(15, 95)
             end = start - random.randint(8, 20)
-            if end <= 1 or start in used:
+            
+            # ✅ ตรวจสอบเงื่อนไขการสร้างงู
+            if end <= 1 or start in used or end in used:
                 continue
+                
             snakes[start] = end
             used.add(start)
+            used.add(end) # ✅ เพิ่มช่องปลายทางของงูไม่ให้ทับซ้อนกับช่องอื่น
+            count += 1
 
         return snakes, ladders
