@@ -1,145 +1,81 @@
 # player.py
+from settings import PLAYER_COLORS, CELL_SIZE
+from board import get_pos, get_cell_center
+import colorsys
 import pygame
-from settings import PLAYER_COLORS, CELL_SIZE # ✅ เพิ่ม CELL_SIZE
-from board import get_pos
-import time
-import math # ✅ เพิ่มการ import math
-
-# เราไม่สามารถ import game_instance ตรงนี้ได้ เนื่องจากจะเกิด Circular Import
-# ข้อมูลที่จำเป็น (snakes, ladders, players) จะถูกส่งผ่านเข้ามาในเมธอดแทน
 
 class Player:
-    def __init__(self, pid):
+    def __init__(self, pid, radius=16):
         self.id = pid
         self.position = 0
+        self.radius = radius
 
-    def draw(self, screen, all_players_data=None):
-        """วาดผู้เล่นที่ตำแหน่งช่อง (self.position) พร้อม Logic จัดวาง"""
-        x, y = get_pos(self.position)
-        
-        # Logic จัดวางผู้เล่นให้ไม่ซ้อนทับกัน (ใช้แค่ถ้ามีมากกว่า 1 คน)
-        offset_x, offset_y = 0, 0
-        if all_players_data and len(all_players_data) > 1:
-            pid = self.id
-            offset_x = (pid % 2) * 10 - 5
-            offset_y = (pid // 2) * 10 - 5
-            
-        pygame.draw.circle(screen, PLAYER_COLORS[self.id], 
-                           (x + 25 + offset_x, y + 25 + offset_y), 18)
-        pygame.draw.circle(screen, (0, 0, 0), 
-                           (x + 25 + offset_x, y + 25 + offset_y), 18, 3)
+        # choose a color from PLAYER_COLORS; if we run out, generate distinct hues
+        try:
+            base_colors = list(PLAYER_COLORS)
+        except Exception:
+            base_colors = [
+                (200, 30, 30),   # red
+                (30, 160, 30),   # green
+                (30, 60, 200),   # blue
+                (220, 180, 30),  # yellow
+                (180, 30, 180),  # magenta
+                (30, 180, 180),  # cyan
+            ]
 
-    # ✅ เมธอดช่วยวาดผู้เล่นที่พิกัด X, Y ชั่วคราว (ใช้ตอนเลื่อนงู)
-    def _draw_at_pos(self, screen, all_players_data, current_x, current_y):
-        """ใช้สำหรับวาดผู้เล่นคนอื่นในตำแหน่งปกติ และวาดผู้เล่นปัจจุบันในพิกัดชั่วคราว"""
-        # วาดผู้เล่นคนอื่น (ที่ไม่ได้เลื่อนอยู่)
-        for p in all_players_data:
-            if p.id != self.id:
-                p.draw(screen, all_players_data)
+        if pid < len(base_colors):
+            self.color = base_colors[pid]
+        else:
+            # generate a visually distinct color using HSV spread
+            h = (pid * 0.618033988749895) % 1.0  # golden ratio fraction for distribution
+            r, g, b = colorsys.hsv_to_rgb(h, 0.7, 0.9)
+            self.color = (int(r * 255), int(g * 255), int(b * 255))
 
-        # Logic จัดวางผู้เล่นคนปัจจุบันในพิกัดชั่วคราว
-        offset_x, offset_y = 0, 0
-        if all_players_data and len(all_players_data) > 1:
-            pid = self.id
-            offset_x = (pid % 2) * 10 - 5
-            offset_y = (pid // 2) * 10 - 5
-            
-        pygame.draw.circle(screen, PLAYER_COLORS[self.id], 
-                           (current_x + offset_x, current_y + offset_y), 18)
-        pygame.draw.circle(screen, (0, 0, 0), 
-                           (current_x + offset_x, current_y + offset_y), 18, 3)
+    def _get_draw_coords(self, all_players=None, offset=(0,0)):
+        """
+        Compute draw coordinates for this player. If multiple players share the same
+        cell, offset them so they don't overlap.
+        """
+        cx, cy = get_cell_center(self.position)
+        ox, oy = offset
 
+        if not all_players:
+            return (cx + ox, cy + oy)
 
-    def animate_move(self, screen, board, steps, snakes, ladders, players):
-        """เดินทีละช่อง พร้อม redraw ทั้งหมด (ใช้สำหรับเดินปกติ)"""
+        # players in same cell
+        same = [p for p in all_players if getattr(p, "position", None) == self.position]
+        if len(same) == 1:
+            return (cx + ox, cy + oy)
 
+        index = same.index(self)
+        # placement offsets for up to 6 players; will wrap for more
+        placements = [
+            (-self.radius - 4, -self.radius - 4),
+            ( self.radius + 4, -self.radius - 4),
+            (-self.radius - 4,  self.radius + 4),
+            ( self.radius + 4,  self.radius + 4),
+            (0, - (self.radius + 8)),
+            (0,  (self.radius + 8)),
+        ]
+        px, py = placements[index % len(placements)]
+        return (cx + px + ox, cy + py + oy)
+
+    def draw(self, surface, all_players=None, offset=(0,0)):
+        x, y = self._get_draw_coords(all_players=all_players, offset=offset)
+        pygame.draw.circle(surface, self.color, (int(x), int(y)), self.radius)
+        pygame.draw.circle(surface, (0,0,0), (int(x), int(y)), self.radius, 2)
+
+    def animate_move(self, surface, board, steps, snakes, ladders, players, screen_update_fn, delay=120):
+        """เดินทีละช่อง (ใช้ screen_update_fn เพื่อให้ caller วาด UI ที่เหลือ)"""
         for _ in range(steps):
-            if self.position < 100:
-                self.position += 1
-            
-            # ✅ Logic การเด้งกลับ (Bounce Back)
-            elif self.position > 100:
-                 self.position = 100 - (self.position - 100)
-            
-            # ✅ วาดใหม่ทั้งกระดาน + ผู้เล่นทั้งหมด
-            board.redraw_all(
-                screen,
-                snakes,
-                ladders,
-                players
-            )
+            # เพิ่มตำแหน่งทีละ 1 (ฉีกเพดานไว้ไม่ให้เกิน 100)
+            self.position += 1
+            if self.position > 100:
+                # bounce back
+                self.position = 100 - (self.position - 100)
+            # เรียก callback ให้วาดหน้าจอ (board, players ฯลฯ)
+            screen_update_fn()
+            pygame.time.delay(delay)
 
-            pygame.display.flip()
-            pygame.time.delay(150)
-
-
-    # ✅ เมธอดใหม่: ใช้สำหรับขึ้นบันไดเท่านั้น (เดินทีละช่อง)
-    def animate_jump(self, screen, board, target, snakes, ladders, players):
-        """กระโดดขึ้นบันได (เดินทีละช่อง)"""
-
-        start = self.position
-        direction = 1 if target > start else -1
-
-        while self.position != target:
-            self.position += direction
-
-            board.redraw_all(
-                screen,
-                snakes,
-                ladders,
-                players
-            )
-
-            pygame.display.flip()
-            pygame.time.delay(120)
-
-    
-    # ✅ เมธอดใหม่: สำหรับการเลื่อนลงตามตัวงู (ใช้พิกัด X, Y)
-    def animate_snake_slide(self, screen, board, target, snakes, ladders, players):
-        """เลื่อนลงตามเส้นโค้งของงู"""
-        start_cell = self.position
-        
-        sx, sy = get_pos(start_cell) # พิกัดช่องเริ่มต้น
-        ex, ey = get_pos(target)     # พิกัดช่องปลายทาง
-
-        # จุดศูนย์กลางของช่อง
-        x1, y1 = sx + CELL_SIZE//2, sy + CELL_SIZE//2
-        x2, y2 = ex + CELL_SIZE//2, ey + CELL_SIZE//2
-
-        num_points = 50 # จำนวนจุดตลอดเส้นทาง
-        
-        dx = x2 - x1
-        dy = y2 - y1
-        length = math.hypot(dx, dy)
-        if length == 0: 
-            self.position = target
-            return
-
-        # เวกเตอร์ตั้งฉาก (ใช้ในการสร้างคลื่น)
-        nx = -dy / length
-        ny = dx / length
-
-        # ลูปเพื่อขยับผู้เล่นไปตามเส้นคลื่น
-        for i in range(1, num_points + 1):
-            t = i / num_points
-            
-            # คำนวณตำแหน่งบนเส้นตรง
-            x = x1 + (dx * t)
-            y = y1 + (dy * t)
-            
-            # คำนวณส่วนโค้ง (คล้ายกับ logic วาดงูใน board.py)
-            wave = math.sin(t * math.pi * 6) * 15 
-            x += nx * wave
-            y += ny * wave
-
-            # ✅ วาดกระดานใหม่ (เพื่อลบภาพเก่าของกระดานและงู/บันได)
-            board.draw(screen, snakes, ladders) 
-            
-            # ✅ วาดผู้เล่นในตำแหน่ง X, Y ชั่วคราว (ใช้เมธอดช่วย)
-            self._draw_at_pos(screen, players, x, y) 
-            
-            pygame.display.flip()
-            pygame.time.delay(10)
-
-        # เมื่ออนิเมชันจบ ให้กำหนดตำแหน่งผู้เล่นใหม่
+    def move_to(self, target):
         self.position = target

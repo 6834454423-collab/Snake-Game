@@ -3,4 +3,5 @@ import random
 
 class Dice:
     def roll(self):
-        return random.randint(1, 6), random.randint(1, 6)
+        """คืนค่า 1..6"""
+        return random.randint(1, 6)

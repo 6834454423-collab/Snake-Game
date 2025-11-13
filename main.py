@@ -1,160 +1,103 @@
-# main.py
 import pygame
 import sys
-from settings import WIDTH, HEIGHT, WHITE, BLACK, BOARD_OFFSET_X, CELL_SIZE, COLS
-from board import Board
-from player import Player
-from dice import Dice
-from snakes_ladders import SnakeLadderGenerator
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK
+from game import Game
+from button import Button
 
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("🐍 Snakes and Ladders - Pixel Edition 🪜")
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Snakes and Ladders")
 
-font = pygame.font.SysFont("Consolas", 20)
-big_font = pygame.font.SysFont("Consolas", 36, bold=True)
+def show_home(screen):
+    """Simple selection UI (2-6 players). Returns chosen count or None if user quits."""
+    clock = pygame.time.Clock()
+    font = pygame.font.SysFont(None, 36)
+    small = pygame.font.SysFont(None, 20)
+    players = 2
 
-# ✅ ให้ไฟล์อื่นเรียกใช้งาน board.redraw_all()
-game_instance = None
+    # buttons
+    cx = SCREEN_WIDTH // 2
+    cy = SCREEN_HEIGHT // 2
+    minus = Button(cx - 110, cy - 10, 44, 36, "-", font)
+    plus = Button(cx + 66, cy - 10, 44, 36, "+", font)
+    start = Button(cx - 70, cy + 50, 140, 44, "Start Game", font, bg_color=(0,150,0), text_color=WHITE)
 
+    running = True
+    while running:  
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return None
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if minus.is_clicked(event):
+                    players = max(2, players - 1)
+                elif plus.is_clicked(event):
+                    players = min(6, players + 1)
+                elif start.is_clicked(event):
+                    return players
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_RIGHT, pygame.K_UP, pygame.K_PLUS, pygame.K_EQUALS):
+                    players = min(6, players + 1)
+                elif event.key in (pygame.K_LEFT, pygame.K_DOWN, pygame.K_MINUS):
+                    players = max(2, players - 1)
 
-class Game:
-    def __init__(self):
-        global game_instance
-        game_instance = self      # ✅ บอกว่า instance นี้คือของเกมจริง
+        screen.fill(WHITE)
+        title = font.render("Select number of players (2-6)", True, BLACK)
+        screen.blit(title, title.get_rect(center=(cx, cy - 60)))
 
-        self.board = Board(font)
-        self.dice = Dice()
-        self.players = [Player(i) for i in range(4)]
-        self.turn_index = 0
+        cnt = font.render(str(players), True, BLACK)
+        screen.blit(cnt, cnt.get_rect(center=(cx, cy)))
 
-        self.generator = SnakeLadderGenerator()
-        self.snakes, self.ladders = self.generator.generate()
+        hint = small.render("Use ←/→, +/- buttons, or mouse. Click Start.", True, (80,80,80))
+        screen.blit(hint, hint.get_rect(center=(cx, cy + 90)))
 
-        self.dice_result = None
-        self.winner = None
+        minus.draw(screen)
+        plus.draw(screen)
+        start.draw(screen)
 
-        # 🔹 พื้นที่ UI ด้านขวา
-        self.UI_AREA_X = BOARD_OFFSET_X + (CELL_SIZE * COLS) + 300
-        self.UI_AREA_Y = HEIGHT // 2 - 100
+        pygame.display.flip()
+        clock.tick(60)
 
-        # 🔹 ปุ่ม
-        self.roll_button = pygame.Rect(self.UI_AREA_X, self.UI_AREA_Y + 200, 150, 60)
-        self.play_again_button = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 80, 200, 60)
+    return None
 
-    def reset(self):
-        self.__init__()
+def main():
+    running = True
+    while running:
+        # show home screen and get selection
+        chosen = show_home(screen)
+        if chosen is None:
+            running = False
+            break
 
-    def handle_roll(self):
-        if self.winner:
-            return
+        # flag object to let Game signal return-to-home
+        class Flag: pass
+        flag = Flag()
+        flag.go_home = False
 
-        dice1, dice2 = self.dice.roll()
-        self.dice_result = (dice1, dice2)
-        steps = dice1 + dice2
+        def go_home_callback():
+            flag.go_home = True
 
-        current_player = self.players[self.turn_index]
+        game = Game(screen, on_go_home=go_home_callback)
 
-        # ✅ อนิเมชันเดินปกติ (รวม Logic เด้งกลับแล้ว)
-        current_player.animate_move(
-            screen, self.board, steps, 
-            self.snakes, self.ladders, self.players
-        )
+        # set chosen players on game and reset as necessary
+        game.start_new_game(chosen)
 
-        pos = current_player.position
-
-        # 🛑 การเช็คชัยชนะ
-        if pos == 100:
-            self.winner = current_player
-            return 
-
-        # ✅ อนิเมชันบันได (ใช้ animate_jump)
-        if pos in self.ladders:
-            target = self.ladders[pos]
-            current_player.animate_jump(
-                screen, self.board, target, 
-                self.snakes, self.ladders, self.players
-            )
-
-        # ✅ อนิเมชันงู (เปลี่ยนมาใช้ animate_snake_slide เพื่อเลื่อนตามเส้นโค้ง)
-        elif pos in self.snakes:
-            target = self.snakes[pos]
-            current_player.animate_snake_slide( # ⬅️ แก้ไขตรงนี้
-                screen, self.board, target, 
-                self.snakes, self.ladders, self.players
-            )
-
-        # ✅ เปลี่ยนเทิร์น 
-        self.turn_index = (self.turn_index + 1) % len(self.players)
-
-    def draw_ui(self):
-        if not self.winner:
-            # ปุ่มทอยลูกเต๋า
-            pygame.draw.rect(screen, (0, 180, 0), self.roll_button)
-            pygame.draw.rect(screen, BLACK, self.roll_button, 3)
-            txt = font.render("ROLL DICE", True, WHITE)
-            screen.blit(txt, (self.roll_button.x + 20, self.roll_button.y + 15))
-
-            # ชื่อผู้เล่น
-            turn_text = font.render(f"Player {self.turn_index + 1}'s Turn", True, BLACK)
-            screen.blit(turn_text, (self.UI_AREA_X, self.UI_AREA_Y - 40))
-
-            # ผลลูกเต๋า
-            if self.dice_result:
-                dice_sum = sum(self.dice_result)
-                dtext = big_font.render(
-                    f"{self.dice_result[0]} + {self.dice_result[1]} = {dice_sum}",
-                    True, BLACK
-                )
-                screen.blit(dtext, (self.UI_AREA_X, self.UI_AREA_Y + 120))
-
-        else:
-            # ผู้ชนะ
-            win_text = big_font.render(f"🎉 Player {self.winner.id + 1} Wins! 🎉",
-                                             True, (255, 100, 0))
-            screen.blit(win_text, (WIDTH//2 - win_text.get_width()//2, HEIGHT//2 - 60))
-
-            # ปุ่มเล่นอีกครั้ง
-            pygame.draw.rect(screen, (0, 120, 255), self.play_again_button)
-            pygame.draw.rect(screen, BLACK, self.play_again_button, 4)
-            again = font.render("PLAY AGAIN", True, WHITE)
-            screen.blit(again, (self.play_again_button.x + 45, self.play_again_button.y + 20))
-
-    def run(self):
+        # game main loop
         clock = pygame.time.Clock()
-        running = True
-
-        while running:
-            screen.fill(WHITE)
-
-            # วาดกระดาน
-            self.board.draw(screen, self.snakes, self.ladders)
-
-            # วาดผู้เล่น
-            for p in self.players:
-                # ⚠️ ใน player.py เราแก้ไข p.draw ให้รับ players ด้วย
-                p.draw(screen, self.players) 
-
-            # วาด UI
-            self.draw_ui()
-
-            pygame.display.flip()
-
+        while not flag.go_home and running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+                    running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    game.handle_click(event.pos)
+                elif event.type == pygame.KEYDOWN:
+                    # optional: forward keys to game
+                    pass
 
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if not self.winner and self.roll_button.collidepoint(event.pos):
-                        self.handle_roll()
+            game.screen_update()
+            clock.tick(60)
 
-                    elif self.winner and self.play_again_button.collidepoint(event.pos):
-                        self.reset()
-
-            clock.tick(30)
-
+    pygame.quit()
+    sys.exit()
 
 if __name__ == "__main__":
-    game = Game()
-    game.run()
+    main()
