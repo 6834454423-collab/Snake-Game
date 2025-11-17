@@ -12,24 +12,12 @@ class Player:
 
         # choose a color from PLAYER_COLORS; if we run out, generate distinct hues
         try:
-            base_colors = list(PLAYER_COLORS)
-        except Exception:
-            base_colors = [
-                (200, 30, 30),   # red
-                (30, 160, 30),   # green
-                (30, 60, 200),   # blue
-                (220, 180, 30),  # yellow
-                (180, 30, 180),  # magenta
-                (30, 180, 180),  # cyan
-            ]
-
-        if pid < len(base_colors):
-            self.color = base_colors[pid]
-        else:
-            # generate a visually distinct color using HSV spread
-            h = (pid * 0.618033988749895) % 1.0  # golden ratio fraction for distribution
-            r, g, b = colorsys.hsv_to_rgb(h, 0.7, 0.9)
-            self.color = (int(r * 255), int(g * 255), int(b * 255))
+            img = pygame.image.load(f"assets/token/token_{pid}.png")
+            
+        except:
+            img = pygame.image.load("assets/token_default.png")
+        
+        self.image = pygame.transform.smoothscale(img, (radius*2, radius*2))
 
     def _get_draw_coords(self, all_players=None, offset=(0,0)):
         """
@@ -62,8 +50,10 @@ class Player:
 
     def draw(self, surface, all_players=None, offset=(0,0)):
         x, y = self._get_draw_coords(all_players=all_players, offset=offset)
-        pygame.draw.circle(surface, self.color, (int(x), int(y)), self.radius)
-        pygame.draw.circle(surface, (0,0,0), (int(x), int(y)), self.radius, 2)
+
+    # blit รูป — โดยต้องเลื่อนรูปครึ่งหนึ่งของขนาด
+        rect = self.image.get_rect(center=(int(x), int(y)))
+        surface.blit(self.image, rect)
 
     def animate_move(self, surface, board, steps, snakes, ladders, players, screen_update_fn, delay=120):
         """เดินทีละช่อง (ใช้ screen_update_fn เพื่อให้ caller วาด UI ที่เหลือ)"""

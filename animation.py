@@ -88,23 +88,31 @@ class Animation:
             pygame.time.delay(int(duration_ms / frames))
 
     def walk(self, surface, board, player, steps, snakes, ladders, players, screen_update_fn):
-        """
-        Animate player walking forward `steps` cells using discrete per-cell hops.
-        After animation, update player's logical position.
-        """
         start_cell = getattr(player, "position", 0)
         prev_cell = start_cell
 
         for step in range(1, steps + 1):
-            target_cell = min(start_cell + step, 100)
+
+        # ตำแหน่งใหม่แบบไม่รวม bounce
+            raw_target = start_cell + step
+
+        # ⭐ NEW RULE: bounce-back ถ้าเกิน 99
+            if raw_target > 99:
+                overflow = raw_target - 99
+                target_cell = 99 - overflow
+            else:
+                target_cell = raw_target
+
             start_center = get_cell_center(prev_cell)
             target_center = get_cell_center(target_cell)
-            # small hop between centers
-            self._animate_step_hop(surface, player, start_center, target_center, self.step_delay, screen_update_fn, hop_height=12)
+
+        # animate hop
+            self._animate_step_hop(surface, player,start_center, target_center,self.step_delay, screen_update_fn,hop_height=12)
+
             prev_cell = target_cell
 
-        # update logical position
-        player.position = min(start_cell + steps, 100)
+    # ⭐ อัปเดตตำแหน่งจริงหลัง animation เสร็จ
+        player.position = prev_cell
 
     def climb_ladder(self, surface, board, player, target, snakes, ladders, players, screen_update_fn):
         """

@@ -47,8 +47,8 @@ def show_home(screen):
         cnt = font.render(str(players), True, BLACK)
         screen.blit(cnt, cnt.get_rect(center=(cx, cy)))
 
-        hint = small.render("Use ←/→, +/- buttons, or mouse. Click Start.", True, (80,80,80))
-        screen.blit(hint, hint.get_rect(center=(cx, cy + 90)))
+        hint = small.render("Use +/- buttons, or mouse. Click Start.", True, (80,80,80))
+        screen.blit(hint, hint.get_rect(center=(cx, cy + 120)))
 
         minus.draw(screen)
         plus.draw(screen)
@@ -92,6 +92,9 @@ def main():
                 elif event.type == pygame.KEYDOWN:
                     # optional: forward keys to game
                     pass
+            
+            game.update_logic()
+
 
             game.screen_update()
             clock.tick(60)

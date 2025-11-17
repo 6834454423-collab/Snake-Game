@@ -1,4 +1,4 @@
-#setting.py
+#settings.py
 import pygame
 
 pygame.init()
