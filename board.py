@@ -1,7 +1,9 @@
 # board.py
 import pygame
 import math
-from settings import ROWS, COLS, CELL_SIZE, BOARD_OFFSET_X, BOARD_OFFSET_Y, BLACK, BROWN, GREY
+import settings
+import colorsys
+from settings import ROWS, COLS, CELL_SIZE, BOARD_OFFSET_X, BOARD_OFFSET_Y, BLACK, BROWN
 
 def get_pos(cell):
     """
@@ -48,7 +50,48 @@ class Board:
                 x = BOARD_OFFSET_X + col * CELL_SIZE + ox
                 y = BOARD_OFFSET_Y + (ROWS - 1 - row) * CELL_SIZE + oy
                 rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
-                pygame.draw.rect(surface, GREY, rect)
+                # draw a semi-transparent cell using an SRCALPHA surface so we can
+                # control opacity; also add a small deterministic variation per cell
+                cell_idx = row * COLS + col
+
+                # If Christmas theme is enabled, draw an alternating red/green pattern
+                if getattr(settings, "CHRISTMAS_THEME", False):
+                    # alternate red/green with slight brightness variation
+                    if (row + col) % 2 == 0:
+                        base = (200, 30, 60)  # warm red
+                    else:
+                        base = (30, 140, 60)  # festive green
+                    nr_i, ng_i, nb_i = base
+                    alpha = 220
+                    cell_surf = pygame.Surface((CELL_SIZE, CELL_SIZE), flags=pygame.SRCALPHA)
+                    cell_surf.fill((nr_i, ng_i, nb_i, alpha))
+                    surface.blit(cell_surf, (x, y))
+
+                    # deterministic small snow speckles (white dots) for festive feel
+                    seed = (cell_idx * 97) % 100
+                    if seed < 8:
+                        # draw a small white dot near top-right area of the cell
+                        sx = x + CELL_SIZE - 8 - ((cell_idx * 19) % 6)
+                        sy = y + 6 + ((cell_idx * 11) % 10)
+                        pygame.draw.circle(surface, (255, 255, 255, 200), (sx, sy), 2)
+                else:
+                    base = settings.BOARD_COLOR
+                    # convert to 0..1 HSV
+                    r_f, g_f, b_f = base[0] / 255.0, base[1] / 255.0, base[2] / 255.0
+                    h, s, v = colorsys.rgb_to_hsv(r_f, g_f, b_f)
+                    # deterministic small variation based on cell index
+                    delta = ((cell_idx * 37) % 13) - 6  # -6..6 (smaller variation)
+                    factor = 1.0 + (delta / 500.0)  # very small change ~ +/-1.2%
+                    v2 = max(0.0, min(1.0, v * factor))
+                    nr, ng, nb = colorsys.hsv_to_rgb(h, s, v2)
+                    nr_i, ng_i, nb_i = int(nr * 255), int(ng * 255), int(nb * 255)
+
+                    # alpha for translucency (0..255) — a bit less transparent than before
+                    alpha = 210
+                    cell_surf = pygame.Surface((CELL_SIZE, CELL_SIZE), flags=pygame.SRCALPHA)
+                    cell_surf.fill((nr_i, ng_i, nb_i, alpha))
+                    surface.blit(cell_surf, (x, y))
+
                 pygame.draw.rect(surface, BLACK, rect, 2)
 
                 # คำนวณหมายเลข cell (Boustrophedon)

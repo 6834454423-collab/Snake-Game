@@ -25,10 +25,24 @@ class Animation:
                 pass
 
     def _draw_token(self, surface, player, x, y):
-        color = getattr(player, "color", (0, 0, 0))
-        radius = getattr(player, "radius", 16)
-        pygame.draw.circle(surface, color, (int(x), int(y)), radius)
-        pygame.draw.circle(surface, (0, 0, 0), (int(x), int(y)), radius, 2)
+        # If the player has an image (preferred), blit it centered at (x,y).
+        # Otherwise fall back to drawing a colored circle using player's color/radius.
+        img = getattr(player, "image", None)
+        if img is not None:
+            try:
+                rect = img.get_rect(center=(int(x), int(y)))
+                surface.blit(img, rect)
+            except Exception:
+                # fallback to circle if blit fails
+                color = getattr(player, "color", (0, 0, 0))
+                radius = getattr(player, "radius", 16)
+                pygame.draw.circle(surface, color, (int(x), int(y)), radius)
+                pygame.draw.circle(surface, (0, 0, 0), (int(x), int(y)), radius, 2)
+        else:
+            color = getattr(player, "color", (0, 0, 0))
+            radius = getattr(player, "radius", 16)
+            pygame.draw.circle(surface, color, (int(x), int(y)), radius)
+            pygame.draw.circle(surface, (0, 0, 0), (int(x), int(y)), radius, 2)
 
     def _animate_step_hop(self, surface, player, start_pos, end_pos, duration_ms, screen_update_fn, hop_height=12):
         """

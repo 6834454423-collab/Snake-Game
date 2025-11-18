@@ -45,3 +45,24 @@ PLAYER_COLORS = [
 	(34, 139, 34),   # forest green
 	(255, 165, 0),   # orange
 ]
+
+# Board color options and current selection
+BOARD_COLOR_OPTIONS = [
+    (GRAY, "Grey"),
+    (LIGHT_BLUE, "Light Blue"),
+    (GREEN, "Green"),
+    (BROWN, "Brown"),
+]
+
+# Default board color (cells)
+BOARD_COLOR = GRAY
+
+# Christmas theme toggle
+CHRISTMAS_THEME = False
+
+# Christmas palette (used by confetti and optional themed cells)
+CHRISTMAS_PALETTE = [
+	(220, 20, 60),   # red
+	(34, 139, 34),   # green
+	(255, 215, 0),   # gold
+]
