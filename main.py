@@ -15,11 +15,14 @@ def show_home(screen):
     font = pygame.font.SysFont(None, 36)
     small = pygame.font.SysFont(None, 20)
     players = 2
+    
+    bg = pygame.image.load("assets/background/select_page.png")
+    bg = pygame.transform.scale(bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     cx = SCREEN_WIDTH // 2
     cy = SCREEN_HEIGHT // 2
-    minus = Button(cx - 110, cy - 10, 44, 36, "-", font)
-    plus = Button(cx + 66, cy - 10, 44, 36, "+", font)
+    minus = Button(cx - 110, cy - 10, 44, 36, "-", font,text_color=WHITE)
+    plus = Button(cx + 66, cy - 10, 44, 36, "+", font,text_color=WHITE)
     start = Button(cx - 70, cy + 50, 140, 44, "Start Game", font, bg_color=(0,150,0), text_color=WHITE)
 
     running = True
@@ -40,14 +43,14 @@ def show_home(screen):
                 elif event.key in (pygame.K_LEFT, pygame.K_DOWN, pygame.K_MINUS):
                     players = max(2, players - 1)
 
-        screen.fill(WHITE)
-        title = font.render("Select number of players (2-6)", True, BLACK)
+        screen.blit(bg, (0, 0))
+        title = font.render("Select here" ,True, WHITE )
         screen.blit(title, title.get_rect(center=(cx, cy - 60)))
 
-        cnt = font.render(str(players), True, BLACK)
+        cnt = font.render(str(players), True, WHITE)
         screen.blit(cnt, cnt.get_rect(center=(cx, cy)))
 
-        hint = small.render("Use +/- buttons, or mouse. Click Start.", True, (80,80,80))
+        hint = small.render("Use mouse. Click Start.", True, (80,80,80))
         screen.blit(hint, hint.get_rect(center=(cx, cy + 120)))
 
         minus.draw(screen)
@@ -63,15 +66,20 @@ def show_home(screen):
 def show_main_menu(screen):
     """Display the main menu. Returns one of: 'play', 'settings', 'quit' or None on quit."""
     clock = pygame.time.Clock()
-    title_font = pygame.font.SysFont(None, 72)
+    title_font = pygame.font.SysFont(None, 16)
     font = pygame.font.SysFont(None, 36)
 
+    bg = pygame.image.load("assets/background/mainmenu_image.png")
+    bg = pygame.transform.scale(bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    
     cx = SCREEN_WIDTH // 2
     cy = SCREEN_HEIGHT // 2
 
-    play = Button(cx - 100, cy - 60, 200, 50, "Play", font, bg_color=(100,149,237), text_color=WHITE)
-    settings_btn = Button(cx - 100, cy + 10, 200, 50, "Settings", font)
-    quit_btn = Button(cx - 100, cy + 80, 200, 50, "Quit", font, bg_color=(220,20,60), text_color=WHITE)
+    play = Button(cx - 100, cy+50  ,200,50, "Play", font, bg_color=(50,50,50),text_color=WHITE)
+    settings_btn = Button(cx - 100, cy+160, 200, 50, "Settings", font)
+    quit_btn = Button(cx - 100, cy+270, 200, 50, "Quit", font, bg_color=(220,20,60), text_color=WHITE)
+    
+    GREY = (12,128,128)
 
     while True:
         for event in pygame.event.get():
@@ -85,16 +93,16 @@ def show_main_menu(screen):
                 elif quit_btn.is_clicked(event):
                     return 'quit'
 
-        screen.fill(WHITE)
-        title = title_font.render("Snakes & Ladders", True, BLACK)
-        screen.blit(title, title.get_rect(center=(cx, cy - 160)))
+        screen.blit(bg, (0, 0))
+        title = title_font.render("by Phiw art ja khlam tha dai kham art ja khloem", True, GREY)
+        screen.blit(title, title.get_rect(center=(cx, cy )))
 
         play.draw(screen)
         settings_btn.draw(screen)
         quit_btn.draw(screen)
 
         hint = pygame.font.SysFont(None, 18).render("Use mouse to choose an option.", True, (80,80,80))
-        screen.blit(hint, hint.get_rect(center=(cx, cy + 150)))
+        screen.blit(hint, hint.get_rect(center=(cx, cy + 15 )))
 
         pygame.display.flip()
         clock.tick(60)

@@ -42,17 +42,32 @@ class Game:
         self.win_popup = None  # <-- NEW popup holder
         self.on_go_home = on_go_home
         # roll cooldown (milliseconds) and last roll timestamp
-        self.roll_cooldown_ms = 1200
+        self.roll_cooldown_ms = 2200
         self._last_roll_time = 0
         # snow particles for Christmas overlay (initialized on demand)
         self.snow_particles = None
         self._snow_last_time = pygame.time.get_ticks()
         
+        self.back_btn = Button( self.UI_X,             # X position (ปรับได้)
+        self.UI_Y+550,     # Y position (ขยับไม่ให้ทับปุ่มอื่น)
+        140,                   # width
+        44,                    # height
+        "Back",                # text
+        self.font,
+        bg_color=(50,50,50),  # สีแดงเข้ม
+        text_color=WHITE )
+
+       #rint("POPUP on start:", self.win_popup)
+
+        
         try:
-            self.bg_image = pygame.image.load("B:/snake_game/assets/background/image_background1.png").convert()
+            self.bg_image = pygame.image.load("assets/background/game_background.jpg").convert()
             self.bg_image = pygame.transform.scale(self.bg_image, screen.get_size())
-        except:
+            print("BACKGROUND LOADED SUCCESS!")
+        except Exception:
+            print("BACKGROUND LOAD FAILED:", e)
             self.bg_image = None
+            
 
     def next_turn(self):
         self.turn_index = (self.turn_index + 1) % len(self.players)
@@ -63,6 +78,10 @@ class Game:
             self.screen.blit(self.bg_image, (0, 0))
         else:
             self.screen.fill(WHITE)
+        
+        if not self.win_popup:
+            self.back_btn.draw(self.screen)
+            
         if self.win_popup:
             self.win_popup.draw()
             pygame.display.flip()
@@ -96,11 +115,11 @@ class Game:
             pygame.draw.rect(self.screen, btn_color, self.roll_button)
             pygame.draw.rect(self.screen, BLACK, self.roll_button, 2)
             if self.dice.rolling:
-                draw_text(self.screen, "Rolling...", (self.roll_button.x + 12, self.roll_button.y + 14), self.font, WHITE)
+                draw_text(self.screen, "Rolling...", (self.roll_button.x +12 , self.roll_button.y +20 ), self.font, WHITE)
             elif not can_roll and cooldown_left > 0:
                 draw_text(self.screen, f"Wait {cooldown_left/1000:.1f}s", (self.roll_button.x + 8, self.roll_button.y + 14), self.font, WHITE)
             else:
-                draw_text(self.screen, "ROLL DICE", (self.roll_button.x + 20, self.roll_button.y + 14), self.font, WHITE)
+                draw_text(self.screen, "ROLL DICE", (self.roll_button.x + 20, self.roll_button.y + 20), self.font, WHITE)
 
         elif self.winner and not self.selecting:
             self.play_again_btn.draw(self.screen)
@@ -113,10 +132,10 @@ class Game:
             self.minus_btn.draw(self.screen)
             self.plus_btn.draw(self.screen)
             self.restart_btn.draw(self.screen)
-
-        draw_text(self.screen, f"Player {self.turn_index + 1}'s turn", (self.UI_X, self.UI_Y - 40), self.font)
+        bold_font = pygame.font.SysFont("Consolas", 18, bold=True)
+        draw_text(self.screen, f"Player {self.turn_index + 1}'s turn", (self.UI_X, self.UI_Y+100) ,bold_font,color=(255,255,255))
         if self.dice_value:
-            draw_text(self.screen, f"Dice: {self.dice_value}", (self.UI_X, self.UI_Y + 40), self.big_font)
+            draw_text(self.screen, f"Dice: {self.dice_value}", (self.UI_X, self.UI_Y +40 ), self.big_font)
 
         # Dice animation
         self.dice.update()
@@ -175,7 +194,11 @@ class Game:
             self.screen.blit(surf, (int(p["x"]), int(p["y"])))
 
     def handle_click(self, pos):
-
+        evt = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": pos, "button": 1})
+        if self.back_btn.is_clicked(evt):
+            if callable(self.on_go_home):
+                self.on_go_home()
+            return
         # ถ้ามี POPUP ชนะ → ให้ส่ง event ไปที่ popup
         if self.win_popup:
             evt = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": pos, "button": 1})
@@ -305,8 +328,11 @@ class WinPopup:
         try:
             self.sound = pygame.mixer.Sound("assets/sound/s_congratulations.mp3")
             self.sound.play()
+            self.bg_popup = pygame.image.load("assets/background/image_background1.png").convert()
+            self.bg_popup = pygame.transform.scale(self.bg_popup, screen.get_size())
         except Exception:
             # don't spam the console if missing
+            self.bg_popup = None
             pass
 
         # Fonts
@@ -372,6 +398,11 @@ class WinPopup:
             })
 
     def draw(self):
+        if hasattr(self, "bg_popup") and self.bg_popup:
+             self.screen.blit(self.bg_popup, (0, 0))
+        else:
+        # fallback background (ถ้าไม่มีไฟล์ภาพ)
+            self.screen.fill((20, 20, 20))
         # dim the game behind the popup
         overlay = pygame.Surface(self.screen.get_size(), flags=pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 120))
@@ -380,7 +411,7 @@ class WinPopup:
         pygame.draw.rect(self.screen, (255, 255, 255), self.rect, border_radius=16)
         pygame.draw.rect(self.screen, (0, 0, 0), self.rect, 3, border_radius=16)
 
-        title = self.font_big.render("🎉 Congratulations 🎉", True, (0, 150, 0))
+        title = self.font_big.render(" Congratulations ", True, (0, 150, 0))
         winner_text = self.font_big.render(self.winner, True, (200, 0, 0))
 
         self.screen.blit(title, (self.rect.centerx - title.get_width() // 2,

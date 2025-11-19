@@ -172,7 +172,7 @@ class Board:
             pygame.draw.circle(surface, BLACK, points[0], 8, 2)
 
     def draw(self, surface, snakes, ladders, offset=(0,0)):
-        surface.fill(WHITE := (255,255,255))
+       #surface.fill(WHITE := (255,255,255))
         self.draw_grid(surface, offset)
         self.draw_finish(surface)
         self.draw_ladders(surface, ladders)
