@@ -1,6 +1,8 @@
 #settings.py
 import pygame
 
+MUTED = False
+
 pygame.init()
 info = pygame.display.Info()
 

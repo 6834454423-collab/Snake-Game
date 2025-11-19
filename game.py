@@ -47,22 +47,29 @@ class Game:
         # snow particles for Christmas overlay (initialized on demand)
         self.snow_particles = None
         self._snow_last_time = pygame.time.get_ticks()
+        
+        try:
+            self.bg_image = pygame.image.load("B:/snake_game/assets/background/image_background1.png").convert()
+            self.bg_image = pygame.transform.scale(self.bg_image, screen.get_size())
+        except:
+            self.bg_image = None
 
     def next_turn(self):
         self.turn_index = (self.turn_index + 1) % len(self.players)
 
     def screen_update(self, draw_temp=None):
         # ถ้ามี popup ชนะ → วาด popup แล้ว return เลย
+        if self.bg_image:
+            self.screen.blit(self.bg_image, (0, 0))
+        else:
+            self.screen.fill(WHITE)
         if self.win_popup:
-            self.board.draw(self.screen, self.snakes, self.ladders)
-            for p in self.players:
-                p.draw(self.screen, self.players)
             self.win_popup.draw()
             pygame.display.flip()
             return
-
-        self.screen.fill(WHITE)
+        
         self.board.draw(self.screen, self.snakes, self.ladders)
+
 
         # วาดผู้เล่น
         for p in self.players:
