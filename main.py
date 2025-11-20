@@ -112,6 +112,9 @@ def show_settings(screen):
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 36)
     small = pygame.font.SysFont(None, 24)
+    bg = pygame.image.load("assets/background/setting_background.png")
+    bg = pygame.transform.scale(bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    
     cx = SCREEN_WIDTH // 2
     cy = SCREEN_HEIGHT // 2
 
@@ -179,7 +182,8 @@ def show_settings(screen):
                         return 'back'
 
         # draw UI
-        screen.fill(WHITE)
+        screen.blit(bg, (0, 0))
+
         title = font.render("Settings", True, BLACK)
         screen.blit(title, title.get_rect(center=(cx, cy - 120)))
 
